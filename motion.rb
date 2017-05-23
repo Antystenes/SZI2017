@@ -24,25 +24,25 @@ class Sprite
     if SDL::Key.press?(SDL::Key::RIGHT)
       @x += MOVE
       if @x >= RES_X
-        @x = RES_X - 1
+        @x = RES_X - MOVE
       end
     end
     if SDL::Key.press?(SDL::Key::DOWN)
       @y += MOVE
       if @y >= RES_Y
-        @y = RES_Y - 1 
+        @y = RES_Y - MOVE
       end
     end
     if SDL::Key.press?(SDL::Key::LEFT)
       @x -= MOVE
       if @x <= 0
-        @x += 0
+        @x += MOVE
       end
     end
     if SDL::Key.press?(SDL::Key::UP)
       @y -= MOVE
-      if @y <= 0
-        @y += 0
+      if @y < 0
+        @y += MOVE
       end
     end
   end
