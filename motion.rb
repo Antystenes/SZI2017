@@ -11,6 +11,7 @@ MOVE = 48
 SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
 image = SDL::Surface.loadBMP "icon.bmp"
+image.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL ,0)
 $image = image.display_format
 
 class Sprite
@@ -22,27 +23,27 @@ class Sprite
   def move
     if SDL::Key.press?(SDL::Key::RIGHT)
       @x += MOVE
-      #if @x >= RES_X
-      #  @x = RES_X - 1
-      #end
+      if @x >= RES_X
+        @x = RES_X - 1
+      end
     end
     if SDL::Key.press?(SDL::Key::DOWN)
       @y += MOVE
-      #if @y >= RES_Y
-      #  @y = RES_Y - 1 
-      #end
+      if @y >= RES_Y
+        @y = RES_Y - 1 
+      end
     end
     if SDL::Key.press?(SDL::Key::LEFT)
       @x -= MOVE
-      #if @x < 0
-      #  @x += 0
-      #end
+      if @x <= 0
+        @x += 0
+      end
     end
     if SDL::Key.press?(SDL::Key::UP)
       @y -= MOVE
-      #if @y < 0
-      #  @y += 0
-      #end
+      if @y <= 0
+        @y += 0
+      end
     end
   end
 
@@ -80,13 +81,15 @@ running = true
 #end
 
 sprite = Sprite.new
-
+black = screen.format.map_rgb(0, 0, 0)
 while running
   while event = SDL::Event2.poll
     case event
     when SDL::Event2::Quit
       running false
     end
+
+    screen.fill_rect(0,0,RES_X,RES_Y,black)
     SDL::Key.scan
     #sprites.each {|i|
     #  i.move
