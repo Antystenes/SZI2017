@@ -13,9 +13,13 @@ SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
 SDL::WM.set_caption("Śmieciara","")
 
-truck = SDL::Surface.loadBMP "sprites/truck.bmp"
-truck.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
-$truck = truck.display_format
+truckImg = SDL::Surface.loadBMP "sprites/truck.bmp"
+#truckImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
+$truck = truckImg.display_format
+
+carImg = SDL::Surface.loadBMP "sprites/car.bmp"
+#carImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
+$car = carImg.display_format
 
 canImg = SDL::Surface.loadBMP "sprites/can.bmp"
 canImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
@@ -33,7 +37,6 @@ class Sprite
     @x = rand MAP_W
     @y = rand MAP_H
   end
-  
   def move
     if SDL::Key.press?(SDL::Key::RIGHT)
       @x += MOVE
@@ -63,6 +66,42 @@ class Sprite
   def draw(screen)
     #puts "Redrawing sprite"
     SDL::Surface.blit($truck, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
+  end
+end
+
+class Car
+  def initialize
+    @x = rand MAP_W
+    @y = rand MAP_H
+  end
+  def move
+    dir = rand(4)
+    puts dir
+    case dir
+    when 0
+      @y -= MOVE
+      if @y < 0
+        @y += MOVE
+      end
+    when 1
+      @x += MOVE
+      if @x >= MAP_W
+        @x = MAP_W - MOVE
+      end
+    when 2
+      @y += MOVE
+      if @y >= MAP_H
+        @y = MAP_H - MOVE
+      end
+    when 3
+      @x -= MOVE
+      if @x <= 0
+        @x += MOVE
+      end
+    end
+  end
+  def draw(screen)
+    SDL::Surface.blit($car, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
 end
 
@@ -101,9 +140,14 @@ class Building
 end
 
 #screen render function
-def render(buildings, can, sprite, screen)
+def render(cars, buildings, can, sprite, screen)
   screen.fill_rect(0,0,RES_X,RES_Y,BLACK)
 
+  cars.each do |i|
+    i.move
+    i.draw(screen)
+  end
+  
   buildings.each do |i|
     i.draw(screen)
   end
@@ -122,9 +166,11 @@ running = true
 
 buildings = []
 can = []
+cars = []
 
 Random.new.rand(5..10).times{ buildings << Building.new }
 Random.new.rand(5..10).times{ can << ThrashCan.new }
+Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
 
@@ -134,11 +180,8 @@ while running
     when SDL::Event2::Quit
       running false
     end
-   
-    #
     SDL::Key.scan
     sprite.move
-    render(buildings, can, sprite, screen)
-    #
+    render(cars, buildings, can, sprite, screen)
   end
 end
