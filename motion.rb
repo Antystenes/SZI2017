@@ -13,9 +13,9 @@ SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
 SDL::WM.set_caption("Śmieciara","")
 
-image = SDL::Surface.loadBMP "sprites/truck.bmp"
-image.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
-$image = image.display_format
+truck = SDL::Surface.loadBMP "sprites/truck.bmp"
+truck.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
+$truck = truck.display_format
 
 canImg = SDL::Surface.loadBMP "sprites/can.bmp"
 canImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
@@ -26,7 +26,7 @@ buildingImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
 $buildingImg = buildingImg.display_format
 
 
-BLACK = screen.format.map_rgb(0, 0, 0)
+BLACK = screen.format.map_rgb(100, 0, 0)
 
 class Sprite
   def initialize
@@ -62,7 +62,7 @@ class Sprite
   end 
   def draw(screen)
     #puts "Redrawing sprite"
-    SDL::Surface.blit($image, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
+    SDL::Surface.blit($truck, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
 end
 
