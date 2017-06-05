@@ -1,18 +1,32 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 require 'sdl'
 
-RES_X = 1280
+RES_X = 1344
 RES_Y = 768
 SPRT = 48
 MAP_W = RES_X/SPRT
 MAP_H = RES_Y/SPRT
-MOVE = 48
+MOVE = 1
 
 SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
-image = SDL::Surface.loadBMP "icon.bmp"
-image.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL ,0)
+SDL::WM.set_caption("Śmieciara","")
+
+image = SDL::Surface.loadBMP "sprites/truck.bmp"
+image.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
 $image = image.display_format
+
+canImg = SDL::Surface.loadBMP "sprites/can.bmp"
+canImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
+$canImg = canImg.display_format
+
+buildingImg = SDL::Surface.loadBMP "sprites/building.bmp"
+buildingImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
+$buildingImg = buildingImg.display_format
+
+
+BLACK = screen.format.map_rgb(0, 0, 0)
 
 class Sprite
   def initialize
@@ -23,14 +37,14 @@ class Sprite
   def move
     if SDL::Key.press?(SDL::Key::RIGHT)
       @x += MOVE
-      if @x >= RES_X
-        @x = RES_X - MOVE
+      if @x >= MAP_W
+        @x = MAP_W - MOVE
       end
     end
     if SDL::Key.press?(SDL::Key::DOWN)
       @y += MOVE
-      if @y >= RES_Y
-        @y = RES_Y - MOVE
+      if @y >= MAP_H
+        @y = MAP_H - MOVE
       end
     end
     if SDL::Key.press?(SDL::Key::LEFT)
@@ -45,58 +59,86 @@ class Sprite
         @y += MOVE
       end
     end
-  end
-
+  end 
   def draw(screen)
-    SDL::Surface.blit($image, 0, 0, SPRT, SPRT, screen, @x, @y)
+    #puts "Redrawing sprite"
+    SDL::Surface.blit($image, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
 end
 
-class MovableSprite
+class Thrash
+  @@made_of = ["glass", "cardboard", "steel", "zinc", "tin", "plastic"]
+  @@color = ["plain", "colorful"]
+  @@size = ["small", "average", "big"]
   def initialize()
-    @ud=@lr=0;
+    @made_of = @@made_of[Random.new.rand(@@made_of.size)]
+    @color = @@color[Random.new.rand(@@color.size)]
+    @size = @@size[Random.new.rand(@@size.size)]
   end
-  
-  def move()
-    #@ud=@lr=0;
-    @lr-=1 if SDL::Key.press?(SDL::Key::H) or SDL::Key.press?(SDL::Key::LEFT)
-    @lr+=1  if SDL::Key.press?(SDL::Key::L) or SDL::Key.press?(SDL::Key::RIGHT)
-    @ud+=1  if SDL::Key.press?(SDL::Key::J) or SDL::Key.press?(SDL::Key::DOWN)
-    @ud-=1 if SDL::Key.press?(SDL::Key::K) or SDL::Key.press?(SDL::Key::UP)
+end
+
+class ThrashCan
+  def initialize
+    @x = rand MAP_W
+    @y = rand MAP_H
+    @l = []
+    Random.new.rand(5..10).times{ @l << Thrash.new }
   end
-  
   def draw(screen)
-    SDL::Surface.blit($image,0,0,32,32,screen,300+@lr*50,200+@ud*50)
+    #puts "Redrawing thrash can"
+    SDL::Surface.blit($canImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
+end
+
+class Building
+  def initialize
+    @x = rand MAP_W
+    @y = rand MAP_H
+  end
+  def draw(screen)
+    SDL::Surface.blit($buildingImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
+  end
+end
+
+#screen render function
+def render(buildings, can, sprite, screen)
+  screen.fill_rect(0,0,RES_X,RES_Y,BLACK)
+
+  buildings.each do |i|
+    i.draw(screen)
+  end
+  can.each do |i|
+    i.draw(screen)
+  end
+  sprite.draw(screen)
+  screen.updateRect 0,0,0,0
 end
 
 #main loop
 
-running = true
+running = true 
 
-#sprites = []
-#
-#for i in 1..5
- # sprites << Sprite.new
-#end
+#make all objects
 
+buildings = []
+can = []
+
+Random.new.rand(5..10).times{ buildings << Building.new }
+Random.new.rand(5..10).times{ can << ThrashCan.new }
 sprite = Sprite.new
-black = screen.format.map_rgb(0, 0, 0)
+
+
 while running
   while event = SDL::Event2.poll
     case event
     when SDL::Event2::Quit
       running false
     end
-
-    screen.fill_rect(0,0,RES_X,RES_Y,black)
+   
+    #
     SDL::Key.scan
-    #sprites.each {|i|
-    #  i.move
-    #  i.draw(screen)
-    #}
     sprite.move
-    sprite.draw(screen)
-    screen.updateRect 0,0,0,0
+    render(buildings, can, sprite, screen)
+    #
   end
 end
