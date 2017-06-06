@@ -8,6 +8,7 @@ SPRT = 48
 MAP_W = RES_X/SPRT
 MAP_H = RES_Y/SPRT
 MOVE = 1
+TILES = Array.new(28).map!{ Array.new(16, 0) }
 
 SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
@@ -36,31 +37,37 @@ class Sprite
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    TILES[@y][@x] = 1
   end
   def move
+    TILES[@y][@x] = 0
     if SDL::Key.press?(SDL::Key::RIGHT)
       @x += MOVE
-      if @x >= MAP_W
-        @x = MAP_W - MOVE
+      if @x >= MAP_W || TILES[@y][@x] == 1
+        @x -= MOVE
       end
+      TILES[@y][@x] = 1
     end
     if SDL::Key.press?(SDL::Key::DOWN)
-      @y += MOVE
-      if @y >= MAP_H
-        @y = MAP_H - MOVE
+      @y += MOVE 
+      if @y >= MAP_H || TILES[@y][@x] == 1
+        @y -= MOVE
       end
+      TILES[@y][@x] = 1
     end
     if SDL::Key.press?(SDL::Key::LEFT)
       @x -= MOVE
-      if @x <= 0
+      if @x <= 0 || TILES[@y][@x] == 1
         @x += MOVE
       end
+      TILES[@y][@x] = 1
     end
     if SDL::Key.press?(SDL::Key::UP)
       @y -= MOVE
-      if @y < 0
+      if @y < 0 || TILES[@y][@x] == 1
         @y += MOVE
       end
+      TILES[@y][@x] = 1
     end
   end 
   def draw(screen)
@@ -73,31 +80,37 @@ class Car
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    TILES[@y][@x] = 1
   end
   def move
+    TILES[@y][@x] = 0
     dir = rand(4)
-    puts dir
+    #puts dir
     case dir
     when 0
       @y -= MOVE
-      if @y < 0
+      if @y < 0 || TILES[@y][@x] == 1
         @y += MOVE
       end
+      TILES[@y][@x] = 1
     when 1
       @x += MOVE
-      if @x >= MAP_W
-        @x = MAP_W - MOVE
+      if @x >= MAP_W || TILES[@y][@x] == 1
+        @x -= MOVE
       end
+      TILES[@y][@x] = 1
     when 2
       @y += MOVE
-      if @y >= MAP_H
-        @y = MAP_H - MOVE
+      if @y >= MAP_H || TILES[@y][@x] == 1
+        @y -= MOVE
       end
+      TILES[@y][@x] = 1
     when 3
       @x -= MOVE
-      if @x <= 0
+      if @x <= 0 || TILES[@y][@x] == 1
         @x += MOVE
       end
+      TILES[@y][@x] = 1
     end
   end
   def draw(screen)
@@ -123,6 +136,12 @@ class ThrashCan
     @l = []
     Random.new.rand(5..10).times{ @l << Thrash.new }
   end
+  def x
+    @x
+  end
+  def y
+    @y
+  end
   def draw(screen)
     #puts "Redrawing thrash can"
     SDL::Surface.blit($canImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
@@ -133,14 +152,23 @@ class Building
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    @can = ThrashCan.new
   end
+  def x
+    @x
+  end
+  def y
+    @y
+  end
+  def can
+    @can
   def draw(screen)
     SDL::Surface.blit($buildingImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
 end
 
 #screen render function
-def render(cars, buildings, can, sprite, screen)
+def render(cars, buildings, sprite, screen)
   screen.fill_rect(0,0,RES_X,RES_Y,BLACK)
 
   cars.each do |i|
@@ -151,9 +179,7 @@ def render(cars, buildings, can, sprite, screen)
   buildings.each do |i|
     i.draw(screen)
   end
-  can.each do |i|
-    i.draw(screen)
-  end
+  
   sprite.draw(screen)
   screen.updateRect 0,0,0,0
 end
@@ -168,11 +194,16 @@ buildings = []
 can = []
 cars = []
 
-Random.new.rand(5..10).times{ buildings << Building.new }
+Random.new.rand(100..150).times{
+  b = Building.new
+  buildings << b
+  TILES[b.y][b.x] = 1
+}
 Random.new.rand(5..10).times{ can << ThrashCan.new }
 Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
+print TILES
 
 while running
   while event = SDL::Event2.poll
@@ -182,6 +213,6 @@ while running
     end
     SDL::Key.scan
     sprite.move
-    render(cars, buildings, can, sprite, screen)
+    render(cars, buildings, sprite, screen)
   end
 end
