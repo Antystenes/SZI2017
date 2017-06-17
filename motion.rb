@@ -2,13 +2,15 @@
 # coding: utf-8
 require 'sdl'
 
-RES_X = 1344
+RES_X = 1366
 RES_Y = 768
 SPRT = 48
 MAP_W = RES_X/SPRT
 MAP_H = RES_Y/SPRT
 MOVE = 1
 FRAME_RATE = 5
+CANS_NR = 1 # Random.new.rand(3..7)
+BLDGS_NR = Random.new.rand(30..40)
 $tiles = Array.new(16).map{ Array.new(28, 0) }
 
 SDL.init SDL::INIT_VIDEO
@@ -35,28 +37,34 @@ $buildingImg = buildingImg.display_format
 BLACK = screen.format.map_rgb(100, 0, 0)
 
 class Sprite
+  attr_reader :x
+  attr_reader :y
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
-    $tiles[@y][@x] = 1
+    while $tiles[@y][@x] > 0
+      @x = rand MAP_W
+      @y = rand MAP_H
+    end
+    $tiles[@y][@x] = 2
   end
   def move(dx,dy)
     $tiles[@y][@x] = 0
     @x += dx*MOVE
-    if dx > 0 && (@x >= MAP_W || $tiles[@y][@x] == 1)
+    if dx > 0 && (@x >= MAP_W || $tiles[@y][@x] >= 1)
       @x -= MOVE
     end
     @y += dy*MOVE
-    if dy > 0 && (@y >= MAP_H || $tiles[@y][@x] == 1)
+    if dy > 0 && (@y >= MAP_H || $tiles[@y][@x] >= 1)
       @y -= MOVE
     end
-    if dx < 0 && (@x < 0 || $tiles[@y][@x] == 1)
+    if dx < 0 && (@x < 0 || $tiles[@y][@x] >= 1)
       @x += MOVE
     end
-    if dy < 0 && (@y < 0 || $tiles[@y][@x] == 1)
+    if dy < 0 && (@y < 0 || $tiles[@y][@x] >= 1)
       @y += MOVE
     end
-    $tiles[@y][@x] = 1
+    $tiles[@y][@x] = 2
   end
   def draw(screen)
     #puts "Redrawing sprite"
@@ -68,6 +76,10 @@ class Car
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    while $tiles[@y][@x] > 0
+      @x = rand MAP_W
+      @y = rand MAP_H
+    end
     $tiles[@y][@x] = 1
   end
   def move
@@ -77,25 +89,25 @@ class Car
     case dir
     when 0
       @y -= MOVE
-      if @y < 0 || $tiles[@y][@x] == 1
+      if @y < 0 || $tiles[@y][@x] >= 1
         @y += MOVE
       end
       $tiles[@y][@x] = 1
     when 1
       @x += MOVE
-      if @x >= MAP_W || $tiles[@y][@x] == 1
+      if @x >= MAP_W || $tiles[@y][@x] >= 1
         @x -= MOVE
       end
       $tiles[@y][@x] = 1
     when 2
       @y += MOVE
-      if @y >= MAP_H || $tiles[@y][@x] == 1
+      if @y >= MAP_H || $tiles[@y][@x] >= 1
         @y -= MOVE
       end
       $tiles[@y][@x] = 1
     when 3
       @x -= MOVE
-      if @x < 0 || $tiles[@y][@x] == 1
+      if @x < 0 || $tiles[@y][@x] >= 1
         @x += MOVE
       end
       $tiles[@y][@x] = 1
@@ -121,6 +133,11 @@ class ThrashCan
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    while $tiles[@y][@x] > 0
+      @x = rand MAP_W
+      @y = rand MAP_H
+    end
+    $tiles[@y][@x] = 1
     @l = []
     Random.new.rand(5..10).times{ @l << Thrash.new }
   end
@@ -141,6 +158,12 @@ class Building
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
+    while $tiles[@y][@x] > 0
+      @x = rand MAP_W
+      @y = rand MAP_H
+    end
+    $tiles[@y][@x] = 1
+
     # @can = ThrashCan.new
   end
   def x
@@ -158,7 +181,7 @@ class Building
 end
 
 #screen render function
-def render(cars, buildings, sprite, screen)
+def render(cars, buildings, sprite, thrash_cans, screen)
   screen.fill_rect(0,0,RES_X,RES_Y,BLACK)
 
   cars.each do |i|
@@ -168,7 +191,7 @@ def render(cars, buildings, sprite, screen)
 
   buildings.map { |b| b.draw(screen) }
 
-  $thrash_cans.map{ |c| c.draw(screen) }
+  thrash_cans.map{ |c| c.draw(screen) }
 
   sprite.draw(screen)
   screen.updateRect 0,0,0,0
@@ -181,21 +204,42 @@ running = true
 #make all objects
 
 buildings = []
-$thrash_cans = []
+thrash_cans = []
 cars = []
 
-Random.new.rand(3..7).times{
-  c = ThrashCan.new
-  $thrash_cans << c; $tiles[c.y][c.x] = 1 unless $tiles[c.y][c.x] == 1
-}
-Random.new.rand(20..25).times{
-  b = Building.new
-  buildings << b; $tiles[b.y][b.x] = 1 unless $tiles[b.y][b.x] == 1
-}
+CANS_NR.times{ thrash_cans << ThrashCan.new }
+BLDGS_NR.times{ buildings << Building.new }
 Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
+def dist_to_next(sprite, thrash_cans)
+  dx = thrash_cans[0].x - sprite.x <=> 0.0
+  dy = thrash_cans[0].y - sprite.y <=> 0.0
+  [dx, dy]
+end
+
+def actions(dx, dy)
+  x = [0,0,0,0]
+  case dx
+  when 1
+    x[0] = 1
+  when -1
+    x[1] = 1
+  end
+  case dy
+  when 1
+    x[2] = 1
+  when -1
+    x[3] = 1
+  end
+  x
+end
+
+$prev_action = [0,0,0,0]
+render(cars, buildings, sprite, thrash_cans, screen)
+
 while running
+
   @start_time = SDL::getTicks
   dx, dy = 0, 0
 
@@ -218,9 +262,13 @@ while running
       end
     end
   end
-  sprite.move dx,dy
-  # p $tiles.reduce([dx,dy],:+)
-  render(cars, buildings, sprite, screen)
+  unless dx == 0 && dy == 0
+    sprite.move dx,dy
+    action = actions(dx,dy)
+    p $tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action,:+), action
+    $prev_action = action
+    render(cars, buildings, sprite, thrash_cans, screen)
+  end
   @end_time = SDL::getTicks
   sleep ((1.0/FRAME_RATE) - ((@end_time - @start_time)/100))
 
