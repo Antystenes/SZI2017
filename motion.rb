@@ -39,36 +39,23 @@ class Sprite
     @y = rand MAP_H
     TILES[@y][@x] = 1
   end
-  def move
+  def move(dx,dy)
     TILES[@y][@x] = 0
-    if SDL::Key.press?(SDL::Key::RIGHT)
-      @x += MOVE
-      if @x >= MAP_W || TILES[@y][@x] == 1
-        @x -= MOVE
-      end
-      TILES[@y][@x] = 1
-    end
-    if SDL::Key.press?(SDL::Key::DOWN)
-      @y += MOVE
-      if @y >= MAP_H || TILES[@y][@x] == 1
-        @y -= MOVE
-      end
-      TILES[@y][@x] = 1
-    end
-    if SDL::Key.press?(SDL::Key::LEFT)
+    @x += dx*MOVE
+    if dx > 0 && (@x >= MAP_W || TILES[@y][@x] == 1)
       @x -= MOVE
-      if @x <= 0 || TILES[@y][@x] == 1
-        @x += MOVE
-      end
-      TILES[@y][@x] = 1
     end
-    if SDL::Key.press?(SDL::Key::UP)
+    @y += dy*MOVE
+    if dy > 0 && (@y >= MAP_H || TILES[@y][@x] == 1)
       @y -= MOVE
-      if @y < 0 || TILES[@y][@x] == 1
-        @y += MOVE
-      end
-      TILES[@y][@x] = 1
     end
+    if dx < 0 && (@x < 0 || TILES[@y][@x] == 1)
+      @x += MOVE
+    end
+    if dy < 0 && (@y < 0 || TILES[@y][@x] == 1)
+      @y += MOVE
+    end
+    TILES[@y][@x] = 1
   end
   def draw(screen)
     #puts "Redrawing sprite"
@@ -107,7 +94,7 @@ class Car
       TILES[@y][@x] = 1
     when 3
       @x -= MOVE
-      if @x <= 0 || TILES[@y][@x] == 1
+      if @x < 0 || TILES[@y][@x] == 1
         @x += MOVE
       end
       TILES[@y][@x] = 1
@@ -206,15 +193,31 @@ Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
 while running
+  @start_time = SDL::getTicks
+  dx, dy = 0, 0
+
   while event = SDL::Event2.poll
     case event
     when SDL::Event2::Quit
       running = false
-    when SDL::Key::Q
-      running = false
-    end
-    SDL::Key.scan
+    when SDL::Event2::KeyDown
+      case event.sym
+        when SDL::Key::Q
+          running = false
+        when SDL::Key::UP
+          dy = -1
+        when SDL::Key::DOWN
+          dy = 1
+        when SDL::Key::LEFT
+          dx = -1
+        when SDL::Key::RIGHT
+          dx = 1
+        end
+      end
+    # SDL::Key.scan
   end
-  sprite.move
+  sprite.move dx,dy
   render(cars, buildings, sprite, screen)
+  @end_time = SDL::getTicks
+  sleep ((1.0/60) - ((@end_time - @start_time)/100))
 end
