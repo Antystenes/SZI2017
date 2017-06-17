@@ -8,7 +8,8 @@ SPRT = 48
 MAP_W = RES_X/SPRT
 MAP_H = RES_Y/SPRT
 MOVE = 1
-TILES = Array.new(16).map{ Array.new(28, 0) }
+FRAME_RATE = 5
+$tiles = Array.new(16).map{ Array.new(28, 0) }
 
 SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
@@ -37,25 +38,25 @@ class Sprite
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
-    TILES[@y][@x] = 1
+    $tiles[@y][@x] = 1
   end
   def move(dx,dy)
-    TILES[@y][@x] = 0
+    $tiles[@y][@x] = 0
     @x += dx*MOVE
-    if dx > 0 && (@x >= MAP_W || TILES[@y][@x] == 1)
+    if dx > 0 && (@x >= MAP_W || $tiles[@y][@x] == 1)
       @x -= MOVE
     end
     @y += dy*MOVE
-    if dy > 0 && (@y >= MAP_H || TILES[@y][@x] == 1)
+    if dy > 0 && (@y >= MAP_H || $tiles[@y][@x] == 1)
       @y -= MOVE
     end
-    if dx < 0 && (@x < 0 || TILES[@y][@x] == 1)
+    if dx < 0 && (@x < 0 || $tiles[@y][@x] == 1)
       @x += MOVE
     end
-    if dy < 0 && (@y < 0 || TILES[@y][@x] == 1)
+    if dy < 0 && (@y < 0 || $tiles[@y][@x] == 1)
       @y += MOVE
     end
-    TILES[@y][@x] = 1
+    $tiles[@y][@x] = 1
   end
   def draw(screen)
     #puts "Redrawing sprite"
@@ -67,37 +68,37 @@ class Car
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
-    TILES[@y][@x] = 1
+    $tiles[@y][@x] = 1
   end
   def move
-    TILES[@y][@x] = 0
+    $tiles[@y][@x] = 0
     dir = rand(4)
     #puts dir
     case dir
     when 0
       @y -= MOVE
-      if @y < 0 || TILES[@y][@x] == 1
+      if @y < 0 || $tiles[@y][@x] == 1
         @y += MOVE
       end
-      TILES[@y][@x] = 1
+      $tiles[@y][@x] = 1
     when 1
       @x += MOVE
-      if @x >= MAP_W || TILES[@y][@x] == 1
+      if @x >= MAP_W || $tiles[@y][@x] == 1
         @x -= MOVE
       end
-      TILES[@y][@x] = 1
+      $tiles[@y][@x] = 1
     when 2
       @y += MOVE
-      if @y >= MAP_H || TILES[@y][@x] == 1
+      if @y >= MAP_H || $tiles[@y][@x] == 1
         @y -= MOVE
       end
-      TILES[@y][@x] = 1
+      $tiles[@y][@x] = 1
     when 3
       @x -= MOVE
-      if @x < 0 || TILES[@y][@x] == 1
+      if @x < 0 || $tiles[@y][@x] == 1
         @x += MOVE
       end
-      TILES[@y][@x] = 1
+      $tiles[@y][@x] = 1
     end
   end
   def draw(screen)
@@ -140,7 +141,7 @@ class Building
   def initialize
     @x = rand MAP_W
     @y = rand MAP_H
-    @can = ThrashCan.new
+    # @can = ThrashCan.new
   end
   def x
     @x
@@ -148,13 +149,13 @@ class Building
   def y
     @y
   end
-  def can
-    @can
+  # def can
+  #   @can
+  # end
+  def draw(screen)
+    SDL::Surface.blit($buildingImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
   end
-    def draw(screen)
-      SDL::Surface.blit($buildingImg, 0, 0, SPRT, SPRT, screen, @x*SPRT, @y*SPRT)
-    end
-  end
+end
 
 #screen render function
 def render(cars, buildings, sprite, screen)
@@ -165,9 +166,9 @@ def render(cars, buildings, sprite, screen)
     i.draw(screen)
   end
 
-  buildings.each do |i|
-    i.draw(screen)
-  end
+  buildings.map { |b| b.draw(screen) }
+
+  $thrash_cans.map{ |c| c.draw(screen) }
 
   sprite.draw(screen)
   screen.updateRect 0,0,0,0
@@ -180,15 +181,17 @@ running = true
 #make all objects
 
 buildings = []
-can = []
+$thrash_cans = []
 cars = []
 
-Random.new.rand(100..150).times{
-  b = Building.new
-  buildings << b
-  TILES[b.y][b.x] = 1
+Random.new.rand(3..7).times{
+  c = ThrashCan.new
+  $thrash_cans << c; $tiles[c.y][c.x] = 1 unless $tiles[c.y][c.x] == 1
 }
-Random.new.rand(5..10).times{ can << ThrashCan.new }
+Random.new.rand(20..25).times{
+  b = Building.new
+  buildings << b; $tiles[b.y][b.x] = 1 unless $tiles[b.y][b.x] == 1
+}
 Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
@@ -212,12 +215,13 @@ while running
           dx = -1
         when SDL::Key::RIGHT
           dx = 1
-        end
       end
-    # SDL::Key.scan
+    end
   end
   sprite.move dx,dy
+  # p $tiles.reduce([dx,dy],:+)
   render(cars, buildings, sprite, screen)
   @end_time = SDL::getTicks
-  sleep ((1.0/60) - ((@end_time - @start_time)/100))
+  sleep ((1.0/FRAME_RATE) - ((@end_time - @start_time)/100))
+
 end
