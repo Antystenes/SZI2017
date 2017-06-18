@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 require 'sdl'
+require 'open3'
 
 RES_X = 1366
 RES_Y = 768
@@ -33,6 +34,7 @@ buildingImg = SDL::Surface.loadBMP "sprites/building.bmp"
 buildingImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
 $buildingImg = buildingImg.display_format
 
+$auto = false
 
 BLACK = screen.format.map_rgb(100, 0, 0)
 
@@ -180,6 +182,14 @@ class Building
   end
 end
 
+def step_func(x)
+  if x < 0.5
+    0
+  else
+    1
+  end
+end
+
 #screen render function
 def render(cars, buildings, sprite, thrash_cans, screen)
   screen.fill_rect(0,0,RES_X,RES_Y,BLACK)
@@ -212,6 +222,7 @@ BLDGS_NR.times{ buildings << Building.new }
 Random.new.rand(5..10).times{ cars << Car.new }
 sprite = Sprite.new
 
+
 def dist_to_next(sprite, thrash_cans)
   dx = thrash_cans[0].x - sprite.x <=> 0.0
   dy = thrash_cans[0].y - sprite.y <=> 0.0
@@ -235,8 +246,26 @@ def actions(dx, dy)
   x
 end
 
+def nn_movement(ls)
+  dx = 0
+  dy = 0
+  dx =  1 if ls[0] > 0.5
+  dx = -1 if ls[1] > 0.5
+  dy =  1 if ls[2] > 0.5
+  dy = -1 if ls[3] > 0.5
+  return [dx, dy]
+end
+
 $prev_action = [0,0,0,0]
 render(cars, buildings, sprite, thrash_cans, screen)
+
+if $auto
+  stdin, _, stderr, _ = Open3.popen3("./predict.py")
+  stderr.gets
+  stdin.puts (0..453).to_a.inspect
+  stderr.gets
+  puts "NN initialized"
+end
 
 while running
 
@@ -248,27 +277,39 @@ while running
     when SDL::Event2::Quit
       running = false
     when SDL::Event2::KeyDown
-      case event.sym
-        when SDL::Key::Q
-          running = false
-        when SDL::Key::UP
-          dy = -1
-        when SDL::Key::DOWN
-          dy = 1
-        when SDL::Key::LEFT
-          dx = -1
-        when SDL::Key::RIGHT
-          dx = 1
+      unless $auto
+        case event.sym
+          when SDL::Key::Q
+            running = false
+          when SDL::Key::UP
+            dy = -1
+          when SDL::Key::DOWN
+            dy = 1
+          when SDL::Key::LEFT
+            dx = -1
+          when SDL::Key::RIGHT
+            dx = 1
+        end
       end
     end
   end
-  unless dx == 0 && dy == 0
-    sprite.move dx,dy
-    action = actions(dx,dy)
-    p $tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action,:+), action
+  if $auto
+  then
+    stdin.puts ($tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action, :+)).inspect
+    action = eval(stderr.gets.split(" ").join(",")).map{ |x| step_func x}
+    sprite.move *nn_movement(action)
     $prev_action = action
-    render(cars, buildings, sprite, thrash_cans, screen)
+    p action
+  else
+    unless dx == 0 && dy == 0
+      sprite.move dx,dy
+      action = actions(dx,dy)
+      p $tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action,:+), action
+      $prev_action = action
+    end
+
   end
+  render(cars, buildings, sprite, thrash_cans, screen)
   @end_time = SDL::getTicks
   sleep ((1.0/FRAME_RATE) - ((@end_time - @start_time)/100))
 
