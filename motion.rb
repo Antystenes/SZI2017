@@ -34,7 +34,7 @@ buildingImg = SDL::Surface.loadBMP "sprites/building.bmp"
 buildingImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
 $buildingImg = buildingImg.display_format
 
-$auto = false
+$auto = true
 
 BLACK = screen.format.map_rgb(100, 0, 0)
 
@@ -52,19 +52,31 @@ class Sprite
   end
   def move(dx,dy)
     $tiles[@y][@x] = 0
-    @x += dx*MOVE
-    if dx > 0 && (@x >= MAP_W || $tiles[@y][@x] >= 1)
-      @x -= MOVE
-    end
-    @y += dy*MOVE
-    if dy > 0 && (@y >= MAP_H || $tiles[@y][@x] >= 1)
-      @y -= MOVE
-    end
-    if dx < 0 && (@x < 0 || $tiles[@y][@x] >= 1)
-      @x += MOVE
-    end
-    if dy < 0 && (@y < 0 || $tiles[@y][@x] >= 1)
-      @y += MOVE
+    # @x += dx*MOVE
+    # if dx > 0 && (@x >= MAP_W || $tiles[@y][@x] >= 1)
+    #   @x -= MOVE
+    # end
+    # @y += dy*MOVE
+    # if dy > 0 && (@y >= MAP_H || $tiles[@y][@x] >= 1)
+    #   @y -= MOVE
+    # end
+    # if dx < 0 && (@x < 0 || $tiles[@y][@x] >= 1)
+    #   @x += MOVE
+    # end
+    # if dy < 0 && (@y < 0 || $tiles[@y][@x] >= 1)
+    #   @y += MOVE
+    # end
+    if @x + dx >= 0 && @y + dy >= 0 && !$tiles[@y+dy].nil? && !$tiles[@y+dy][@x+dx].nil? && $tiles[@y+dy][@x+dx] == 0
+      @x += dx
+      @y += dy
+    else
+      if @y + dy >= 0 && !$tiles[@y+dy].nil? && $tiles[@y+dy][@x] == 0
+        @y += dy
+      else
+        if @x + dx >= 0 && !$tiles[@y][@x+dx].nil? && $tiles[@y][@x+dx] == 0
+          @x += dx
+        end
+      end
     end
     $tiles[@y][@x] = 2
   end
@@ -251,8 +263,8 @@ def nn_movement(ls)
   dy = 0
   dx =  1 if ls[0] > 0.5
   dx = -1 if ls[1] > 0.5
-  dy =  1 if ls[2] > 0.5
-  dy = -1 if ls[3] > 0.5
+  dy =  1 if ls[2] > 0.3
+  dy = -1 if ls[3] > 0.3 && ls[3] > ls[2]
   return [dx, dy]
 end
 
@@ -296,7 +308,7 @@ while running
   if $auto
   then
     stdin.puts ($tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action, :+)).inspect
-    action = eval(stderr.gets.split(" ").join(",")).map{ |x| step_func x}
+    action = eval(stderr.gets.split(" ").join(","))
     sprite.move *nn_movement(action)
     $prev_action = action
     p action

@@ -16,7 +16,7 @@ import ast
 
 input_size = 454
 
-batch_size = 1024
+batch_size = 256
 
 
 def get_corpus():
@@ -36,14 +36,14 @@ if __name__ == '__main__':
     Y_train = np.array(Y)
 
     model = Sequential()
-    model.add(Dense(128, input_dim=input_size, activation='elu'))
+    model.add(Dense(128, input_dim=input_size, activation='tanh'))
     model.add(Dense(64, activation='tanh'))
     model.add(Dense(4, activation='sigmoid'))
 
     model.compile(loss='mse',
                   optimizer='rmsprop',
-                  metrics=['accuracy'])
-    model.fit(X_train, Y_train, batch_size=batch_size, epochs=5)
+                  metrics=['mse'])
+    model.fit(X_train, Y_train, batch_size=batch_size, epochs=2)
     json_string = model.to_json()
     open('model_architecture.json', 'w').write(json_string)
     model.save_weights('model_weights.h5', overwrite=True)
