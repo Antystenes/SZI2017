@@ -224,8 +224,8 @@ sprite = Sprite.new
 
 
 def dist_to_next(sprite, thrash_cans)
-  dx = thrash_cans[0].x - sprite.x <=> 0.0
-  dy = thrash_cans[0].y - sprite.y <=> 0.0
+  dx = thrash_cans[0].x - sprite.x
+  dy = thrash_cans[0].y - sprite.y
   [dx, dy]
 end
 
@@ -300,16 +300,19 @@ while running
     sprite.move *nn_movement(action)
     $prev_action = action
     p action
+    render(cars, buildings, sprite, thrash_cans, screen)
+
   else
     unless dx == 0 && dy == 0
       sprite.move dx,dy
       action = actions(dx,dy)
       p $tiles.reduce(dist_to_next(sprite,thrash_cans) + $prev_action,:+), action
       $prev_action = action
+      render(cars, buildings, sprite, thrash_cans, screen)
+
     end
 
   end
-  render(cars, buildings, sprite, thrash_cans, screen)
   @end_time = SDL::getTicks
   sleep ((1.0/FRAME_RATE) - ((@end_time - @start_time)/100))
 
