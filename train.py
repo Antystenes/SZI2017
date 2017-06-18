@@ -2,10 +2,11 @@
 
 from __future__ import print_function
 import numpy as np
-np.random.seed(1337)  # for reproducibility
+np.random.seed(666)  # for reproducibility
 
 import sys
 from keras.utils import np_utils
+from keras       import optimizers
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Embedding, Input, merge
 from keras.layers import LSTM
@@ -16,7 +17,7 @@ import ast
 
 input_size = 454
 
-batch_size = 256
+batch_size = 128
 
 
 def get_corpus():
@@ -36,12 +37,15 @@ if __name__ == '__main__':
     Y_train = np.array(Y)
 
     model = Sequential()
-    model.add(Dense(128, input_dim=input_size, activation='tanh'))
+    model.add(Dense(256, input_dim=input_size, activation='tanh'))
     model.add(Dense(64, activation='tanh'))
+    model.add(Dense(16, activation='tanh'))
     model.add(Dense(4, activation='sigmoid'))
 
+    #sgd = optimizers.SGD(lr=0.1, momentum=0.1, decay=0.01)
+
     model.compile(loss='mse',
-                  optimizer='rmsprop',
+                  optimizer='adagrad',
                   metrics=['mse'])
     model.fit(X_train, Y_train, batch_size=batch_size, epochs=2)
     json_string = model.to_json()

@@ -3,16 +3,19 @@
 require 'sdl'
 require 'open3'
 
-RES_X = 1366
-RES_Y = 768
-SPRT = 48
-MAP_W = RES_X/SPRT
-MAP_H = RES_Y/SPRT
-MOVE = 1
+THRESHOLD  = 0.1
+RES_X      = 1366
+RES_Y      = 768
+SPRT       = 48
+MAP_W      = RES_X/SPRT
+MAP_H      = RES_Y/SPRT
+MOVE       = 1
 FRAME_RATE = 5
-CANS_NR = 1 # Random.new.rand(3..7)
-BLDGS_NR = Random.new.rand(30..40)
-$tiles = Array.new(16).map{ Array.new(28, 0) }
+CANS_NR    = 1 # Random.new.rand(3..7)
+BLDGS_NR   = Random.new.rand(30..40)
+$tiles     = Array.new(16).map{ Array.new(28, 0) }
+
+$auto      = true
 
 SDL.init SDL::INIT_VIDEO
 screen = SDL::setVideoMode RES_X, RES_Y, 16, SDL::SWSURFACE
@@ -33,8 +36,6 @@ $canImg = canImg.display_format
 buildingImg = SDL::Surface.loadBMP "sprites/building.bmp"
 buildingImg.set_color_key( SDL::SRCCOLORKEY || SDL::RLEACCEL, 0)
 $buildingImg = buildingImg.display_format
-
-$auto = true
 
 BLACK = screen.format.map_rgb(100, 0, 0)
 
@@ -261,10 +262,22 @@ end
 def nn_movement(ls)
   dx = 0
   dy = 0
-  dx =  1 if ls[0] > 0.5
-  dx = -1 if ls[1] > 0.5
-  dy =  1 if ls[2] > 0.3
-  dy = -1 if ls[3] > 0.3 && ls[3] > ls[2]
+  dx =  1 if ls[0] > THRESHOLD
+  dx = -1 if ls[1] > THRESHOLD && ls[1] > ls [0]
+  dy =  1 if ls[2] > THRESHOLD
+  dy = -1 if ls[3] > THRESHOLD && ls[3] > ls[2]
+  if ls.all? { |x| x <= THRESHOLD }
+    case ls.index(ls.max)
+    when 0
+      dx =  1
+    when 1
+      dx = -1
+    when 2
+      dy =  1
+    when 3
+      dy = -1
+    end
+  end
   return [dx, dy]
 end
 
